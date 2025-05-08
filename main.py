@@ -95,7 +95,7 @@ def upload():
         del inputs, generated_ids, generated_ids_trimmed
         torch.cuda.empty_cache()
 
-    return jsonify({"received_text": output_text})
+    return jsonify({"output_result": output_text})
 
 
 if __name__ == '__main__':
