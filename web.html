@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>视觉问答系统</title>
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: Arial, sans-serif;
+      background-color: #f8f8f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .container {
+      background-color: #ffffff;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+      max-width: 400px;
+      width: 90%;
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input[type="text"], input[type="file"] {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    button {
+      margin-top: 10px;
+      margin-right: 5px;
+    }
+    pre {
+      background-color: #eee;
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    #preview {
+      display: none;
+      margin-top: 10px;
+      max-width: 100%;
+      max-height: 200px;
+      width: auto;
+      height: auto;
+      border-radius: 10px;
+      object-fit: contain;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>视觉问答系统</h2>
+
+    <form id="uploadForm">
+      <label>请输入文字或点击语音输入：</label>
+      <input type="text" name="text" id="textInput" required>
+      <button type="button" id="startSpeech">🎤 语音输入</button>
+      <button type="button" id="playSpeech">🔊 朗读输入</button>
+
+      <label>上传图片（可选）：</label>
+      <input type="file" name="image" id="imageInput" accept="image/*" capture="user">
+      <img id="preview" alt="图片预览">
+      <button type="button" id="changeImage" style="display: none;">更换图片</button>
+
+      <button type="submit">提交</button>
+    </form>
+
+    <h3>答案：</h3>
+    <pre id="result"></pre>
+  </div>
+
+  <script>
+    const form = document.getElementById('uploadForm');
+    const result = document.getElementById('result');
+    const textInput = document.getElementById('textInput');
+    const startSpeech = document.getElementById('startSpeech');
+    const playSpeech = document.getElementById('playSpeech');
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const changeImage = document.getElementById('changeImage');
+
+
+    function speakText(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'zh-CN';
+      speechSynthesis.speak(utterance);
+    }
+
+    // 🎤 语音输入
+    startSpeech.addEventListener('click', () => {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        alert('当前浏览器不支持语音识别。');
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'zh-CN';
+      recognition.interimResults = false;
+
+      recognition.onresult = (event) => {
+        const speechResult = event.results[0][0].transcript;
+        textInput.value = speechResult;
+      };
+
+      recognition.onerror = (event) => {
+        alert('语音识别错误：' + event.error);
+      };
+
+      recognition.start();
+    });
+
+    // 🔊 播放输入框内容
+    playSpeech.addEventListener('click', () => {
+      const text = textInput.value;
+      if (text) speakText(text);
+    });
+
+    // 图片预览逻辑
+    imageInput.addEventListener('change', () => {
+      const file = imageInput.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          preview.src = e.target.result;
+          preview.style.display = 'block';
+          changeImage.style.display = 'inline-block';
+        };
+        reader.readAsDataURL(file);
+      } else {
+        preview.src = '';
+        preview.style.display = 'none';
+        changeImage.style.display = 'none';
+      }
+    });
+
+    // 更换图片按钮
+    changeImage.addEventListener('click', () => {
+      imageInput.click(); // 触发文件选择
+    });
+
+    // 📤 提交表单
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData(form);
+
+      speakText('请稍后，正在处理中');
+
+      try {
+        const response = await fetch('http://10.234.42.152:5000/upload', { //这里的10.234.42.152:5000改成自己运行main.py所在机器对应的ip和main.py中的port
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+        const spokenText = `${data.received_text}。`;
+        result.textContent = JSON.stringify(data, null, 2);
+        speakText(spokenText);
+      } catch (error) {
+        result.textContent = '请求失败：' + error;
+        speakText('请求失败，请检查网络或服务器。');
+      }
+    });
+  </script>
+</body>
+</html>
