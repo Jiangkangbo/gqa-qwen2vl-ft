@@ -158,14 +158,14 @@
       speakText('请稍后，正在处理中');
 
       try {
-        const response = await fetch('http://10.234.42.152:5000/upload', { //这里的10.234.42.152:5000改成自己运行main.py所在机器对应的ip和main.py中的port
+        const response = await fetch('http://10.249.44.252:5000/upload', { //这里的10.249.44.252:5000改成自己运行main.py所在机器对应的ip和main.py中的port
           method: 'POST',
           body: formData
         });
 
         const data = await response.json();
-        const spokenText = `${data.received_text}。`;
-        result.textContent = JSON.stringify(data, null, 2);
+        const spokenText = `${data.output_result}。`;
+        result.textContent = JSON.stringify(spokenText, null, 2);
         speakText(spokenText);
       } catch (error) {
         result.textContent = '请求失败：' + error;
